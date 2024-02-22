@@ -39,10 +39,22 @@ fn handle_connection(mut stream: TcpStream) {
         .take_while(|line| !line.is_empty()) // The browser signals the end of an HTTP request by sending two newline characters in a row, so to get one request from the stream, we take lines until we get a line that is the empty string.
         .collect();
 
+    let request_line = &http_request[0];
+    let request_line_split_on_whitespace: Vec<&str> = request_line[..].split(" ").collect();
+
+    if request_line_split_on_whitespace.len() != 3 {
+        // handle misformatted request line, with a 500 response.
+    }
+
+    let path = request_line_split_on_whitespace[1];
+
+    println!("{request_line}");
+    println!("{path}");
+
     // Once we’ve collected the lines into the vector,
     // we’re printing them out using pretty debug formatting
     // so we can take a look at the instructions the web browser is sending to our server.
-    println!("Request: {:#?}", http_request);
+    // println!("Request: {:#?}", http_request);
 
     // This is the first line in our response.
     // It contains the protocol, status code, and status text
