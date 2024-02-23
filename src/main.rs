@@ -1,6 +1,7 @@
 pub mod cache;
 pub mod default_file;
 pub mod directory;
+pub mod gzip;
 pub mod hostname;
 pub mod logger;
 pub mod port;
