@@ -1,3 +1,4 @@
+pub mod cache;
 pub mod default_file;
 pub mod directory;
 pub mod hostname;
@@ -83,12 +84,7 @@ fn handle_connection(
     mut stream: TcpStream,
     static_directory_manager_instance: &StaticDirectoryManager,
 ) {
-    // we create a new BufReader instance that wraps a mutable reference to the stream.
-    // BufReader adds buffering by managing calls to the std::io::Read trait methods for us.
     let buf_reader = BufReader::new(&mut stream);
-    // We create a variable named http_request to collect the lines of the request.
-    // We indicate that we want to collect these lines in a vector
-    // by adding the Vec<_> type annotation.
     let http_request: Vec<_> = buf_reader
         .lines() // BufReader implements the std::io::BufRead trait, which provides the lines method. The lines method returns an iterator of Result<String, std::io::Error> by splitting the stream of data whenever it sees a newline byte.
         .map(|result| result.unwrap()) // To get each String, we map and unwrap each Result. The Result might be an error if the data isn’t valid UTF-8 or if there was a problem reading from the stream.
@@ -122,32 +118,6 @@ fn handle_connection(
         headers,
     );
 
-    // Once we’ve collected the lines into the vector,
-    // we’re printing them out using pretty debug formatting
-    // so we can take a look at the instructions the web browser is sending to our server.
-    // println!("Request: {:#?}", http_request);
-
-    // This is the first line in our response.
-    // It contains the protocol, status code, and status text
-    // let status_line = "HTTP/1.1 200 OK";
-    // Request our index file, which exists at ./index.html
-    // read_to_string returns a Result<String> so we need to unwrap it
-    // in order to obtain its value (the String)
-    // let contents = fs::read_to_string("index.html").unwrap();
-    // We'll use the length of the content in headers below
-    // let length = contents.len();
-    // response follows the format
-    // status_line CRLF
-    // Headers CRLF
-    // CRLF
-    // Body
-    // let response = format!("{status_line}\r\nContent-Length: {length}\r\n\r\n{contents}");
-
-    // we call as_bytes on our response to convert the string data to bytes.
-    // The write_all method on stream takes a &[u8]
-    // and sends those bytes directly down the connection.
-    // Because the write_all operation could fail,
-    // we use unwrap on any error result as before.
     stream
         .write_all(response.build_as_string().as_bytes())
         .unwrap();
