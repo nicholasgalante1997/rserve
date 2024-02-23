@@ -24,7 +24,7 @@ use static_directory_manager::StaticDirectoryManager;
 const VERSION: &str = "1.0.0";
 
 fn main() {
-    let static_server_started_log = format!("Starting Rstatic Server, version {:?}", VERSION);
+    let static_server_started_log = format!("Starting Rserve, version {:?}", VERSION);
     Logger::info(&static_server_started_log);
 
     let args: Vec<String> = env::args().collect();
