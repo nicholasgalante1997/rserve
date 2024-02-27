@@ -1,6 +1,7 @@
 use crate::logger::Logger;
 use std::fs;
 
+#[derive(Debug, Clone)]
 pub struct StaticDirectoryManager {
     pub directories: Vec<String>,
     pub backup_file: String,
