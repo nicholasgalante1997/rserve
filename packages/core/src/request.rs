@@ -59,7 +59,7 @@ impl Request {
         let method = *(request_line_split_on_whitespace
             .get(0)
             .expect("Proved request_line_split_on_whitespace.len() == 3"));
-        let path = *(request_line_split_on_whitespace
+        let mut path = *(request_line_split_on_whitespace
             .get(1)
             .expect("Proved request_line_split_on_whitespace.len() == 3"));
         let protocol = *(request_line_split_on_whitespace
@@ -70,6 +70,10 @@ impl Request {
             .iter()
             .map(|item| item.clone())
             .collect();
+
+        if path == "/" {
+            path = "/index.html";
+        }
 
         Ok(Request {
             path: String::from(path),

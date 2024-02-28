@@ -1,30 +1,20 @@
-# Rstatic Web Server
+# rserve
 
-This is a Rust implementation of a static file server. This crate will produce an executable program that accepts command line configuration to indicate what file it should serve in the file system.
+A pure rust implementation of the npm `serve` package.
 
-What does it need to know?
+## Quickstart Usage
 
-Needs (--flags still):
+```bash
+# with pnpm
+pnpm install -g rserve
 
-- Directory(ies)
+# with npm
+npm i -g rserve
 
-Optional
+# with yarn
+yarn add --global rserve
+```
 
-- Port
-- Http vs Https
+```bash
 
-Nice to have (--flags):
-
-- Header Configuration
-- file extension matching, auto-populating
-- custom error pages
-
-
-Command line format:
-
-cargo run -- platform --dir=public --dir=assets --header="KEY=VALUE" --match="html,htm" --server-exception-error-page=500.html
-
-So when it has that information, what does it need to do?
-
-Check that it has been passed directories
-Check that the directories it has been passed is valid
+```

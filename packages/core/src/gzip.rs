@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::io::{Error, Write};
 
 use crate::logger::Logger;

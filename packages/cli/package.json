@@ -1,0 +1,20 @@
+{
+  "name": "rserve2",
+  "version": "0.0.1",
+  "description": "A rust implementation of the npm serve package.",
+  "main": "bin/index.mjs",
+  "type": "module",
+  "bin": "./bin/index.mjs",
+  "scripts": {
+    "release": "release-it"
+  },
+  "author": "Nick Galante <nicholasgalante1997@gmail.com>",
+  "license": "ISC",
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "commander": "^12.0.0"
+  },
+  "devDependencies": {
+    "release-it": "^17.1.1"
+  }
+}

@@ -38,12 +38,15 @@ impl StaticDirectoryManager {
         let directories_as_strings = self.directories.clone();
         for mut directory_string in directories_as_strings {
             directory_string.push_str(path);
-            Logger::info(&format!("Path is {}", &directory_string));
+            Logger::info(&format!("Requested Path: {}", &directory_string));
             let file_op_result = self.get_file(&directory_string);
             if let Ok(file) = file_op_result {
+                Logger::info(&format!("Found path! File exists @ {}", &directory_string));
                 return Ok(file);
             }
         }
+
+        Logger::warn("Unable to find requested file in known static directories.");
         Err(())
     }
 }
