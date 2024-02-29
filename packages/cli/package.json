@@ -1,6 +1,6 @@
 {
 	"name": "rsrv",
-	"version": "1.0.0",
+	"version": "1.1.0",
 	"description": "A simple, flexible, fast static file server, implemented in rust.",
 	"main": "bin/index.mjs",
 	"type": "module",
