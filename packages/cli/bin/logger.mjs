@@ -8,7 +8,7 @@ const LEVEL_MAP = new Map([
   ["warn", 1],
   ["error", 2],
   ["fatal", 2],
-  ["silent", 3],
+  ["silent", 3]
 ]);
 
 function safeStringify(o) {
@@ -34,19 +34,19 @@ function Logger(options = {}) {
           switch (level) {
             case "info": {
               console.info(
-                `${chalk.hex("80acf8").bold("[INFO]")}: ${chalk.hex("80acf8")(safeStringify(log))}`,
+                `${chalk.hex("80acf8").bold("[INFO]")}: ${chalk.hex("80acf8")(safeStringify(log))}`
               );
               break;
             }
             case "debug": {
               console.debug(
-                `${chalk.hex("78dbcb").bold("[DEBUG]")}: ${chalk.hex("78dbcb")(safeStringify(log))}`,
+                `${chalk.hex("78dbcb").bold("[DEBUG]")}: ${chalk.hex("78dbcb")(safeStringify(log))}`
               );
               break;
             }
             case "warn": {
               console.warn(
-                `${chalk.hex("ffe76e").bold("[WARN]")}: ${chalk.hex("ffe76e")(safeStringify(log))}`,
+                `${chalk.hex("ffe76e").bold("[WARN]")}: ${chalk.hex("ffe76e")(safeStringify(log))}`
               );
               break;
             }
@@ -55,13 +55,13 @@ function Logger(options = {}) {
             }
             case "fatal": {
               console.error(
-                `${chalk.hex("ff4e52").bold("[ERROR]")}: ${chalk.hex("ff4e52")(safeStringify(log))}`,
+                `${chalk.hex("ff4e52").bold("[ERROR]")}: ${chalk.hex("ff4e52")(safeStringify(log))}`
               );
               break;
             }
             default: {
               console.log(
-                `${chalk.hex("80acf8").bold("[LOG]")}: ${chalk.hex("80acf8")(safeStringify(log))}`,
+                `${chalk.hex("80acf8").bold("[LOG]")}: ${chalk.hex("80acf8")(safeStringify(log))}`
               );
             }
           }

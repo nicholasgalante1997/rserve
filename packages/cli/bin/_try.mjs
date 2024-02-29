@@ -9,7 +9,7 @@ export function _trySync(callback) {
   } finally {
     return {
       data,
-      error,
+      error
     };
   }
 }
@@ -25,7 +25,7 @@ export async function _tryAsync(callback) {
   } finally {
     return {
       data,
-      error,
+      error
     };
   }
 }
