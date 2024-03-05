@@ -1,9 +1,8 @@
 use core::fmt::Display;
-use image;
 use std::error::Error;
 use std::fmt::{write, Debug};
 use std::fs::{self, File};
-use std::io::{Cursor, Read};
+use std::io::Read;
 
 pub enum FileLike {
     TextFile(String),
@@ -167,13 +166,12 @@ impl FileLike {
     }
 
     pub fn use_image_file_loading_strategy(
-        path: &str,
-        output_format: image::ImageOutputFormat,
+        path: &str
     ) -> Result<FileLike, Box<dyn Error>> {
-        let file = image::open(path)?;
-        let mut image_data: Cursor<Vec<u8>> = Cursor::new(Vec::new());
-        file.write_to(&mut image_data, output_format)?;
-        Ok(FileLike::ImageFile(image_data.into_inner()))
+        let mut file = File::open(path)?;
+        let mut image_buffer: Vec<u8> = Vec::new();
+        file.read_to_end(&mut image_buffer)?;
+        Ok(FileLike::ImageFile(image_buffer))
     }
 
     pub fn get_filelike(path: &str) -> Result<FileLike, Box<dyn Error>> {
@@ -195,22 +193,22 @@ impl FileLike {
             KnownFileType::SVG => Self::use_text_file_loading_strategy(path),
 
             KnownFileType::GIF => {
-                Self::use_image_file_loading_strategy(path, image::ImageOutputFormat::Gif)
+                Self::use_image_file_loading_strategy(path)
             }
             KnownFileType::ICO => {
-                Self::use_image_file_loading_strategy(path, image::ImageOutputFormat::Ico)
+                Self::use_image_file_loading_strategy(path)
             }
             KnownFileType::JPG => {
-                Self::use_image_file_loading_strategy(path, image::ImageOutputFormat::Jpeg(100))
+                Self::use_image_file_loading_strategy(path)
             }
             KnownFileType::JPEG => {
-                Self::use_image_file_loading_strategy(path, image::ImageOutputFormat::Jpeg(100))
+                Self::use_image_file_loading_strategy(path)
             }
             KnownFileType::PNG => {
-                Self::use_image_file_loading_strategy(path, image::ImageOutputFormat::Png)
+                Self::use_image_file_loading_strategy(path)
             }
             KnownFileType::WEBP => {
-                Self::use_image_file_loading_strategy(path, image::ImageOutputFormat::WebP)
+                Self::use_image_file_loading_strategy(path)
             }
 
             _ => Self::use_text_file_loading_strategy(path),

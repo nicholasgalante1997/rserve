@@ -25,7 +25,7 @@ use directory::Directory;
 use logger::Logger;
 use static_directory_manager::StaticDirectoryManager;
 
-const VERSION: &str = "1.0.0";
+const VERSION: &str = "1.1.0";
 
 pub fn run() {
     echo_rsrv_process_started();

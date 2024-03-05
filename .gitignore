@@ -1,5 +1,6 @@
 /packages/core/target
-/packages/cli/crates/rserve/target
+/packages/cli/crates/rsrv
+/packages/cli/*.tgz
 node_modules
 .DS_Store
 dist/

@@ -73,7 +73,6 @@ impl StaticDirectoryManager {
             match file_op_result {
                 Ok(file) => {
                     Logger::info(&format!("Found path! File exists @ {}", &directory_string));
-                    Logger::info(&file.to_string());
                     return Ok(file);
                 }
                 Err(e) => {

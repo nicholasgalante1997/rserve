@@ -123,6 +123,7 @@ impl Response {
                             stream.flush().expect("Failed to write stream.");
                         }
                         Err(e) => {
+                            Logger::error(&format!("Error thrown during file compression - {:?}", e));
                             // Fallback to standard image file serving
                             let response_header = format!(
                                 "{} {} {}\r\n{}\r\n",
