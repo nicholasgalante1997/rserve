@@ -12,7 +12,7 @@ impl Logger {
     }
 
     pub fn error(message: &str) {
-        println!("{}: {}", "error".bold().red(), message.bold());
+        eprintln!("{}: {}", "error".bold().red(), message.bold());
     }
 
     pub fn debug(message: &str) {

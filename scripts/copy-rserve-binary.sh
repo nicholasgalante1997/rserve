@@ -1,9 +1,13 @@
 #!/bin/bash
 
-from_dir="packages/core/target/release/rserve"
+from_dir="packages/core/target/release/rsrv"
+to_path="packages/cli/crates/rsrv"
 
-to_dir="packages/cli/crates/rserve/target/release/"
+if [ -f $to_path ]; then
+  echo "Purging existing binary file at $to_path";
+  rm $to_path;
+fi
 
-echo "Copying binary from $from_dir to $to_dir...";
-cp $from_dir $to_dir;
+echo "Copying binary from $from_dir to $to_path...";
+cp $from_dir $to_path;
 echo "Complete!";

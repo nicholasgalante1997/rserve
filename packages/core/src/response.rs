@@ -2,15 +2,17 @@ use std::collections::HashMap;
 use std::io::prelude::*;
 use std::net::TcpStream;
 
+use crate::filelike::FileLike;
 use crate::gzip::Gzip;
-use crate::headers::Headers;
+use crate::logger::Logger;
 
 pub struct Response {
+    compress: bool,
     protocol: String,
     status: u16,
     status_text: String,
-    body: String,
     headers: HashMap<String, String>,
+    body: FileLike,
 }
 
 impl Response {
@@ -19,9 +21,11 @@ impl Response {
         status: u16,
         status_text: String,
         headers: HashMap<String, String>,
-        body: String,
+        body: FileLike,
+        compress: bool,
     ) -> Self {
         Self {
+            compress,
             body,
             headers,
             protocol,
@@ -50,40 +54,123 @@ impl Response {
 }
 
 impl Response {
-    pub fn respond_in_octet_stream(
-        stream: &mut TcpStream,
-        response: Response,
-        path: &str,
-    ) -> Result<(), String> {
-        let compression_result = Gzip::compress(&response.body);
-        match compression_result {
-            Ok(compressed_data) => {
-                let header_response = format!(
-                    "{} {} {}\r\n\
-                    Content-Type: {}\r\n\
-                    Content-Encoding: gzip\r\n\
-                    Content-Length: {}\r\n\
-                    Connection: close\r\n\r\n",
-                    response.protocol,
-                    response.status,
-                    response.status_text,
-                    Headers::format_content_type_header_based_on_request_path(path),
-                    compressed_data.len()
-                );
+    pub fn respond(&self, stream: &mut TcpStream) {
+        match &self.body {
+            FileLike::TextFile(_) => {
+                if self.compress {
+                    match Gzip::compress(&self.body) {
+                        Ok(compressed_file) => {
+                            let response_header = format!(
+                                "{} {} {}\r\nContent-Length: {}\r\n{}\r\n",
+                                &self.protocol,
+                                &self.status,
+                                &self.status_text,
+                                &compressed_file.len(),
+                                self.headers_as_string(),
+                            );
 
-                stream
-                    .write_all(header_response.as_bytes())
-                    .expect("Failed to send response header");
+                            stream
+                                .write_all(response_header.as_bytes())
+                                .expect("Failed to send response header");
 
-                stream
-                    .write_all(&compressed_data)
-                    .expect("Failed to send compressed data");
+                            stream
+                                .write_all(&compressed_file)
+                                .expect("Failed to send compressed data");
 
-                stream.flush().expect("Failed to write stream.");
-
-                Ok(())
+                            stream.flush().expect("Failed to write stream.");
+                        }
+                        Err(e) => {
+                            // Fallback to trying to respond with a plain text file
+                            Logger::error(e.to_string().as_str());
+                            match stream.write_all(&self.build_as_string().as_bytes()) {
+                                Ok(_) => (),
+                                Err(e) => {
+                                    Logger::error(e.to_string().as_str());
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    match stream.write_all(&self.build_as_string().as_bytes()) {
+                        Ok(_) => (),
+                        Err(e) => {
+                            Logger::error(&e.to_string());
+                        }
+                    }
+                }
             }
-            Err(e) => Err(format!("Error: {:#?}", e)),
+            FileLike::ImageFile(image_file) => {
+                if self.compress {
+                    match Gzip::compress(&self.body) {
+                        Ok(compressed_image_file) => {
+                            let response_header = format!(
+                                "{} {} {}\r\nContent-Length: {}\r\n{}\r\n",
+                                &self.protocol,
+                                &self.status,
+                                &self.status_text,
+                                &compressed_image_file.len(),
+                                self.headers_as_string(),
+                            );
+
+                            stream
+                                .write_all(response_header.as_bytes())
+                                .expect("Failed to send response header");
+
+                            stream
+                                .write_all(&compressed_image_file)
+                                .expect("Failed to send compressed data");
+
+                            stream.flush().expect("Failed to write stream.");
+                        }
+                        Err(e) => {
+                            // Fallback to standard image file serving
+                            let response_header = format!(
+                                "{} {} {}\r\n{}\r\n",
+                                &self.protocol,
+                                &self.status,
+                                &self.status_text,
+                                &self.headers_as_string()
+                            );
+                            stream
+                                .write_all(response_header.as_bytes())
+                                .expect("Failed to send response header");
+
+                            stream
+                                .write_all(&image_file)
+                                .expect("Failed to send compressed data");
+
+                            match stream.flush() {
+                                Ok(_) => (),
+                                Err(e) => {
+                                    Logger::error(e.to_string().as_str());
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    let response_header = format!(
+                        "{} {} {}\r\n{}\r\n",
+                        &self.protocol,
+                        &self.status,
+                        &self.status_text,
+                        &self.headers_as_string()
+                    );
+                    stream
+                        .write_all(response_header.as_bytes())
+                        .expect("Failed to send response header");
+
+                    stream
+                        .write_all(&image_file)
+                        .expect("Failed to send compressed data");
+
+                    match stream.flush() {
+                        Ok(_) => (),
+                        Err(e) => {
+                            Logger::error(e.to_string().as_str());
+                        }
+                    }
+                }
+            }
         }
     }
 }

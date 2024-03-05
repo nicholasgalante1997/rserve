@@ -1,9 +1,10 @@
 [package]
-name = "rserve"
-version = "0.0.1"
+name = "rsrv"
+version = "1.1.0"
 edition = "2021"
 
 [dependencies]
 chrono = "0.4.34"
 colored = "2.1.0"
-flate2 = "1.0.28"
+flate2 = "1.0"
+image = "0.24.9"

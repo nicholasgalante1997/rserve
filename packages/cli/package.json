@@ -1,31 +1,31 @@
 {
-	"name": "rsrv",
-	"version": "1.1.0",
-	"description": "A simple, flexible, fast static file server, implemented in rust.",
-	"main": "bin/index.mjs",
-	"type": "module",
-	"bin": "./bin/index.mjs",
-	"files": [
-		"bin",
-		"crates"
-	],
-	"scripts": {
-		"release": "release-it",
-		"prettier": "prettier --write bin/",
-		"lint": "eslint bin/**/*.mjs",
-		"lint:fix": "eslint --fix bin/**/*.mjs",
-		"format": "run-s -c lint:fix prettier"
-	},
-	"author": "Nick Galante <nicholasgalante1997@gmail.com>",
-	"license": "ISC",
-	"dependencies": {
-		"chalk": "^5.3.0",
-		"commander": "^12.0.0",
-		"npm-run-all": "^4.1.5"
-	},
-	"devDependencies": {
-		"eslint": "^8.57.0",
-		"prettier": "^3.2.5",
-		"release-it": "^17.1.1"
-	}
+  "name": "rsrv",
+  "version": "1.1.0",
+  "description": "A simple, flexible, fast static file server, implemented in rust.",
+  "main": "bin/index.mjs",
+  "type": "module",
+  "bin": "./bin/index.mjs",
+  "files": [
+    "bin",
+    "crates"
+  ],
+  "scripts": {
+    "release": "release-it",
+    "prettier": "prettier --write bin/",
+    "lint": "eslint bin/**/*.mjs",
+    "lint:fix": "eslint --fix bin/**/*.mjs",
+    "format": "run-s -c lint:fix prettier"
+  },
+  "author": "Nick Galante <nicholasgalante1997@gmail.com>",
+  "license": "ISC",
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "commander": "^12.0.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "npm-run-all": "^4.1.5",
+    "prettier": "^3.2.5",
+    "release-it": "^17.1.1"
+  }
 }

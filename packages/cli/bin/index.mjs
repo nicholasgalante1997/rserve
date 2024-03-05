@@ -8,13 +8,13 @@ import path from "path";
 
 import Logger from "./logger.mjs";
 
-const PREDICTABLE_PATH_TO_RS_EXECUTABLE = "node_modules/rserve2/crates/rserve/target/release/rserve";
+const PREDICTABLE_PATH_TO_RS_EXECUTABLE = "node_modules/rsrv/crates/rsrv";
 const BANISHED_CHARS = [";", "&", "|", "[", "]", "{", "}", "(", ")", ".."];
 
 program
-  .name("rserve")
+  .name("rsrv")
   .description("A simple, fast command line file server, implemented in rust.")
-  .version("0.0.1");
+  .version("1.1.0");
 
 program.argument(
   "<directories...>",
@@ -42,11 +42,6 @@ program.option(
   "--no-port-switching",
   "Do not open a port other than the one specified when it's taken",
   true
-);
-program.option(
-  "--platform <string>",
-  "Which rust binary executable to use based on which platform your code is running on. Default is x86_64-unknown-linux-gnu",
-  "x86_64-unknown-linux-gnu"
 );
 
 program.parse();
