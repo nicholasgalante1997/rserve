@@ -7,6 +7,7 @@ use std::io::Read;
 pub enum FileLike {
     TextFile(String),
     ImageFile(Vec<u8>),
+    ProxyFile(Vec<u8>),
 }
 
 pub enum KnownFileType {
@@ -16,7 +17,6 @@ pub enum KnownFileType {
     XHTML,
     XML,
     PHP,
-    WASM,
     JS,
     CJS,
     MJS,
@@ -29,7 +29,6 @@ pub enum KnownFileType {
     TEXT,
 
     // Image Based Loading Strategy
-    AVIF,
     GIF,
     ICO,
     JPG,
@@ -41,6 +40,8 @@ pub enum KnownFileType {
     PDF,
     TAR,
     ZIP,
+    WASM,
+    ANON,
 }
 
 impl FileLike {
@@ -157,7 +158,11 @@ impl FileLike {
             return KnownFileType::ZIP;
         }
 
-        KnownFileType::TEXT
+        if file_ending.to_lowercase() == "wasm" {
+            return KnownFileType::WASM;
+        }
+
+        KnownFileType::ANON
     }
 
     pub fn use_text_file_loading_strategy(path: &str) -> Result<FileLike, Box<dyn Error>> {
@@ -165,13 +170,18 @@ impl FileLike {
         Ok(FileLike::TextFile(file))
     }
 
-    pub fn use_image_file_loading_strategy(
-        path: &str
-    ) -> Result<FileLike, Box<dyn Error>> {
+    pub fn use_image_file_loading_strategy(path: &str) -> Result<FileLike, Box<dyn Error>> {
         let mut file = File::open(path)?;
         let mut image_buffer: Vec<u8> = Vec::new();
         file.read_to_end(&mut image_buffer)?;
         Ok(FileLike::ImageFile(image_buffer))
+    }
+
+    pub fn use_agnostic_file_loading_strategy(path: &str) -> Result<FileLike, Box<dyn Error>> {
+        let mut file = File::open(path)?;
+        let mut file_buffer: Vec<u8> = Vec::new();
+        file.read_to_end(&mut file_buffer)?;
+        Ok(FileLike::ProxyFile(file_buffer))
     }
 
     pub fn get_filelike(path: &str) -> Result<FileLike, Box<dyn Error>> {
@@ -192,26 +202,20 @@ impl FileLike {
             KnownFileType::CSV => Self::use_text_file_loading_strategy(path),
             KnownFileType::SVG => Self::use_text_file_loading_strategy(path),
 
-            KnownFileType::GIF => {
-                Self::use_image_file_loading_strategy(path)
-            }
-            KnownFileType::ICO => {
-                Self::use_image_file_loading_strategy(path)
-            }
-            KnownFileType::JPG => {
-                Self::use_image_file_loading_strategy(path)
-            }
-            KnownFileType::JPEG => {
-                Self::use_image_file_loading_strategy(path)
-            }
-            KnownFileType::PNG => {
-                Self::use_image_file_loading_strategy(path)
-            }
-            KnownFileType::WEBP => {
-                Self::use_image_file_loading_strategy(path)
-            }
+            KnownFileType::GIF => Self::use_image_file_loading_strategy(path),
+            KnownFileType::ICO => Self::use_image_file_loading_strategy(path),
+            KnownFileType::JPG => Self::use_image_file_loading_strategy(path),
+            KnownFileType::JPEG => Self::use_image_file_loading_strategy(path),
+            KnownFileType::PNG => Self::use_image_file_loading_strategy(path),
+            KnownFileType::WEBP => Self::use_image_file_loading_strategy(path),
 
-            _ => Self::use_text_file_loading_strategy(path),
+            KnownFileType::GZ => Self::use_agnostic_file_loading_strategy(path),
+            KnownFileType::ZIP => Self::use_agnostic_file_loading_strategy(path),
+            KnownFileType::TAR => Self::use_agnostic_file_loading_strategy(path),
+            KnownFileType::PDF => Self::use_agnostic_file_loading_strategy(path),
+            KnownFileType::WASM => Self::use_agnostic_file_loading_strategy(path),
+
+            _ => Self::use_agnostic_file_loading_strategy(path),
         }
     }
 }
@@ -221,6 +225,7 @@ impl FileLike {
         match self {
             FileLike::TextFile(file) => file.len(),
             FileLike::ImageFile(file) => file.len(),
+            FileLike::ProxyFile(file) => file.len(),
         }
     }
 }
@@ -230,6 +235,7 @@ impl Display for FileLike {
         match self {
             FileLike::TextFile(file_as_string) => write(f, format_args!("{}", file_as_string)),
             FileLike::ImageFile(file_as_u8_vec) => write(f, format_args!("{:?}", file_as_u8_vec)),
+            FileLike::ProxyFile(file_as_u8_vec) => write(f, format_args!("{:?}", file_as_u8_vec)),
         }
     }
 }
@@ -239,6 +245,7 @@ impl Debug for FileLike {
         match self {
             FileLike::TextFile(file_as_string) => write(f, format_args!("{}", file_as_string)),
             FileLike::ImageFile(file_as_u8_vec) => write(f, format_args!("{:?}", file_as_u8_vec)),
+            FileLike::ProxyFile(file_as_u8_vec) => write(f, format_args!("{:?}", file_as_u8_vec)),
         }
     }
 }

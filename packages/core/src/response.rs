@@ -69,15 +69,35 @@ impl Response {
                                 self.headers_as_string(),
                             );
 
-                            stream
-                                .write_all(response_header.as_bytes())
-                                .expect("Failed to send response header");
+                            let header_stream_write_result =
+                                stream.write_all(response_header.as_bytes());
 
-                            stream
-                                .write_all(&compressed_file)
-                                .expect("Failed to send compressed data");
+                            match header_stream_write_result {
+                                Ok(_) => (),
+                                Err(e) => {
+                                    Logger::error(&format!("{:?}", e));
+                                    return;
+                                }
+                            }
 
-                            stream.flush().expect("Failed to write stream.");
+                            let body_stream_write_result = stream.write_all(&compressed_file);
+
+                            match body_stream_write_result {
+                                Ok(_) => (),
+                                Err(e) => {
+                                    Logger::error(&format!("{:?}", e));
+                                    return;
+                                }
+                            }
+
+                            let flush_stream_result = stream.flush();
+
+                            match flush_stream_result {
+                                Ok(_) => (),
+                                Err(e) => {
+                                    Logger::error(&format!("{:?}", e));
+                                }
+                            }
                         }
                         Err(e) => {
                             // Fallback to trying to respond with a plain text file
@@ -112,18 +132,40 @@ impl Response {
                                 self.headers_as_string(),
                             );
 
-                            stream
-                                .write_all(response_header.as_bytes())
-                                .expect("Failed to send response header");
+                            let header_stream_write_result =
+                                stream.write_all(response_header.as_bytes());
 
-                            stream
-                                .write_all(&compressed_image_file)
-                                .expect("Failed to send compressed data");
+                            match header_stream_write_result {
+                                Ok(_) => (),
+                                Err(e) => {
+                                    Logger::error(&format!("{:?}", e));
+                                    return;
+                                }
+                            }
 
-                            stream.flush().expect("Failed to write stream.");
+                            let body_stream_write_result = stream.write_all(&compressed_image_file);
+
+                            match body_stream_write_result {
+                                Ok(_) => (),
+                                Err(e) => {
+                                    Logger::error(&format!("{:?}", e));
+                                }
+                            }
+
+                            let stream_flush_result = stream.flush();
+
+                            match stream_flush_result {
+                                Ok(_) => (),
+                                Err(e) => {
+                                    Logger::error(&format!("{:?}", e));
+                                }
+                            }
                         }
                         Err(e) => {
-                            Logger::error(&format!("Error thrown during file compression - {:?}", e));
+                            Logger::error(&format!(
+                                "Error thrown during file compression - {:?}",
+                                e
+                            ));
                             // Fallback to standard image file serving
                             let response_header = format!(
                                 "{} {} {}\r\n{}\r\n",
@@ -132,13 +174,25 @@ impl Response {
                                 &self.status_text,
                                 &self.headers_as_string()
                             );
-                            stream
-                                .write_all(response_header.as_bytes())
-                                .expect("Failed to send response header");
 
-                            stream
-                                .write_all(&image_file)
-                                .expect("Failed to send compressed data");
+                            let header_stream_write_result =
+                                stream.write_all(response_header.as_bytes());
+
+                            match header_stream_write_result {
+                                Ok(_) => (),
+                                Err(e) => {
+                                    Logger::error(&format!("{:?}", e));
+                                }
+                            };
+
+                            let body_stream_write_result = stream.write_all(&image_file);
+
+                            match body_stream_write_result {
+                                Ok(_) => (),
+                                Err(e) => {
+                                    Logger::error(&format!("{:?}", e));
+                                }
+                            };
 
                             match stream.flush() {
                                 Ok(_) => (),
@@ -156,13 +210,142 @@ impl Response {
                         &self.status_text,
                         &self.headers_as_string()
                     );
-                    stream
-                        .write_all(response_header.as_bytes())
-                        .expect("Failed to send response header");
 
-                    stream
-                        .write_all(&image_file)
-                        .expect("Failed to send compressed data");
+                    let header_stream_write_result = stream.write_all(response_header.as_bytes());
+
+                    match header_stream_write_result {
+                        Ok(_) => (),
+                        Err(e) => {
+                            Logger::error(&format!("{:?}", e));
+                            return;
+                        }
+                    };
+
+                    let body_stream_write_result = stream.write_all(&image_file);
+
+                    match body_stream_write_result {
+                        Ok(_) => (),
+                        Err(e) => {
+                            Logger::error(&format!("{:?}", e));
+                        }
+                    }
+
+                    match stream.flush() {
+                        Ok(_) => (),
+                        Err(e) => {
+                            Logger::error(e.to_string().as_str());
+                        }
+                    }
+                }
+            }
+            FileLike::ProxyFile(file) => {
+                if self.compress {
+                    match Gzip::compress(&self.body) {
+                        Ok(compressed_file) => {
+                            let response_header = format!(
+                                "{} {} {}\r\nContent-Length: {}\r\n{}\r\n",
+                                &self.protocol,
+                                &self.status,
+                                &self.status_text,
+                                &compressed_file.len(),
+                                self.headers_as_string(),
+                            );
+
+                            let header_stream_write_result =
+                                stream.write_all(response_header.as_bytes());
+
+                            match header_stream_write_result {
+                                Ok(_) => (),
+                                Err(e) => {
+                                    Logger::error(e.to_string().as_str());
+                                }
+                            }
+
+                            let body_stream_write_result = stream.write_all(&compressed_file);
+
+                            match body_stream_write_result {
+                                Ok(_) => (),
+                                Err(e) => {
+                                    Logger::error(e.to_string().as_str());
+                                }
+                            }
+
+                            match stream.flush() {
+                                Ok(_) => (),
+                                Err(e) => {
+                                    Logger::error(e.to_string().as_str());
+                                }
+                            }
+                        }
+                        Err(e) => {
+                            Logger::error(&format!(
+                                "Error thrown during file compression - {:?}",
+                                e
+                            ));
+                            // Fallback to standard image file serving
+                            let response_header = format!(
+                                "{} {} {}\r\n{}\r\n",
+                                &self.protocol,
+                                &self.status,
+                                &self.status_text,
+                                &self.headers_as_string()
+                            );
+
+                            let header_stream_write_result =
+                                stream.write_all(response_header.as_bytes());
+
+                            match header_stream_write_result {
+                                Ok(_) => (),
+                                Err(e) => {
+                                    Logger::error(e.to_string().as_str());
+                                }
+                            }
+
+                            let body_stream_write_result = stream.write_all(&file);
+
+                            match body_stream_write_result {
+                                Ok(_) => (),
+                                Err(e) => {
+                                    Logger::error(e.to_string().as_str());
+                                }
+                            }
+
+                            let stream_flush_result = stream.flush();
+
+                            match stream_flush_result {
+                                Ok(_) => (),
+                                Err(e) => {
+                                    Logger::error(e.to_string().as_str());
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    let response_header = format!(
+                        "{} {} {}\r\n{}\r\n",
+                        &self.protocol,
+                        &self.status,
+                        &self.status_text,
+                        &self.headers_as_string()
+                    );
+
+                    let header_stream_write_result = stream.write_all(response_header.as_bytes());
+
+                    match header_stream_write_result {
+                        Ok(_) => (),
+                        Err(e) => {
+                            Logger::error(e.to_string().as_str());
+                        }
+                    }
+
+                    let body_stream_write_result = stream.write_all(&file);
+
+                    match body_stream_write_result {
+                        Ok(_) => (),
+                        Err(e) => {
+                            Logger::error(e.to_string().as_str());
+                        }
+                    }
 
                     match stream.flush() {
                         Ok(_) => (),

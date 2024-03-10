@@ -13,10 +13,7 @@ pub mod request;
 pub mod response;
 pub mod static_directory_manager;
 
-use std::env;
-use std::error::Error;
-use std::net::TcpListener;
-use std::process;
+use std::{env, error::Error, net::TcpListener, process};
 
 use arguments::Arguments;
 use connection::ConnectionHandler;
@@ -29,11 +26,9 @@ const VERSION: &str = "1.1.0";
 
 pub fn run() {
     echo_rsrv_process_started();
-    log_arguments();
-    log_directory_arguments();
 
     if !ensure_directories_exist() {
-        Logger::error("Supplied nonexistent directories. Exiting process.");
+        Logger::error("Supplied a static directory that was not found. Exiting process.");
         process::exit(1);
     }
 

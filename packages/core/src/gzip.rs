@@ -18,9 +18,13 @@ impl Gzip {
             }
             FileLike::ImageFile(image_file) => {
                 let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
-                encoder
-                    .write_all(&image_file)
-                    .expect("Failed to gzip image data");
+                encoder.write_all(&image_file)?;
+                let gzipped_data = encoder.finish()?;
+                Ok(gzipped_data)
+            }
+            FileLike::ProxyFile(file) => {
+                let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
+                encoder.write_all(&file)?;
                 let gzipped_data = encoder.finish()?;
                 Ok(gzipped_data)
             }

@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import chalk from "chalk";
-import { _trySync } from "./_try.mjs";
+import { optional } from "../../utils/option.mjs";
+import { safeStringify } from "../../utils/stringify.mjs";
 
 const LEVEL_MAP = new Map([
   ["info", 0],
@@ -10,14 +11,6 @@ const LEVEL_MAP = new Map([
   ["fatal", 2],
   ["silent", 3]
 ]);
-
-function safeStringify(o) {
-  try {
-    return JSON.stringify(o, null, 2);
-  } catch (e) {
-    return o;
-  }
-}
 
 function Logger(options = {}) {
   const { level = "info", transport = { type: "stdout" }, name } = options;
@@ -29,7 +22,7 @@ function Logger(options = {}) {
     if (LEVEL_MAP.has(level)) {
       if (LEVEL_MAP.get(level) >= LEVEL_MAP.get(this.level)) {
         if (this.transport.type === "file") {
-          _trySync(fs.appendFileSync.bind({}, this.transport.destination, log));
+          optional(fs.appendFileSync.bind({}, this.transport.destination, log));
         } else {
           switch (level) {
             case "info": {

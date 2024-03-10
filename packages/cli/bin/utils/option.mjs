@@ -1,4 +1,4 @@
-export function _trySync(callback) {
+export function optional(callback) {
   let data;
   let error = null;
   try {
@@ -14,7 +14,7 @@ export function _trySync(callback) {
   }
 }
 
-export async function _tryAsync(callback) {
+export async function optionalAsync(callback) {
   let data;
   let error = null;
   try {

@@ -1,6 +1,8 @@
 use std::env;
 use std::fs;
 
+use crate::logger::Logger;
+
 pub struct Directory;
 
 impl Directory {
@@ -53,23 +55,33 @@ impl Directory {
                         .push_str(&Directory::convert_directory_flag_into_string(directory));
                     if let Ok(metadata) = fs::metadata(&full_directory_path) {
                         if metadata.is_dir() {
-                            println!("The directory at {} exists!", &full_directory_path);
+                            Logger::info(&format!(
+                                "The directory at {} exists!",
+                                &full_directory_path
+                            ));
                         } else {
-                            println!(
+                            Logger::error(&format!(
                                 "The path at {} exists, but it is not a directory.",
                                 &full_directory_path
-                            );
+                            ));
                         }
                     } else {
-                        println!("The directory at {} does not exist.", &full_directory_path);
+                        Logger::error(&format!(
+                            "The directory at {} does not exist.",
+                            &full_directory_path
+                        ));
                     }
                 })
             } else {
-                println!("Failed to convert the current working directory to a string.");
+                Logger::error(&format!(
+                    "Failed to convert the current working directory to a string."
+                ));
                 operation_status = false;
             }
         } else {
-            println!("Failed to retrieve the current working directory.");
+            Logger::error(&format!(
+                "Failed to retrieve the current working directory."
+            ));
             operation_status = false;
         }
         operation_status

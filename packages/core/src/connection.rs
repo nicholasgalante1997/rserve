@@ -1,13 +1,15 @@
-use crate::filelike::FileLike;
 use crate::headers::Headers;
 use crate::request::Request;
 use crate::response::Response;
 use crate::static_directory_manager::StaticDirectoryManager;
+use crate::{filelike::FileLike, logger::Logger};
 
 use std::{
     io::{prelude::*, BufReader},
     net::TcpStream,
 };
+
+use serde_json;
 
 pub struct ConnectionHandler;
 
@@ -97,7 +99,8 @@ impl ConnectionHandler {
     }
 
     pub fn handle_request_with_error(e: String, stream: &mut TcpStream) {
-        let error_body = format!("{{ \"error\": \"{}\" }}", e);
+        let connection_error = ConnectionError::new(e);
+        let error_body = connection_error.get_error_as_json_string();
 
         let response_headers = Headers::new(vec![
             (String::from("Content-Length"), error_body.len().to_string()),
@@ -118,8 +121,28 @@ impl ConnectionHandler {
             false,
         );
 
-        stream
-            .write_all(response.build_as_string().as_bytes())
-            .unwrap();
+        let stream_write_result = stream.write_all(response.build_as_string().as_bytes());
+
+        match stream_write_result {
+            Ok(_) => (),
+            Err(e) => {
+                Logger::error(&format!("{:?}", e));
+            }
+        }
+    }
+}
+
+pub struct ConnectionError {
+    message: String,
+}
+
+impl ConnectionError {
+    pub fn new(message: String) -> Self {
+        Self { message }
+    }
+    pub fn get_error_as_json_string<'a>(&self) -> String {
+        let json = serde_json::json!({ "error": &self.message });
+        let json_str = json.to_string();
+        json_str
     }
 }
