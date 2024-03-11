@@ -1,3 +1,8 @@
+/**
+ * 
+ * @param {string[]} rawArgs 
+ * @returns {string[]}
+ */
 export function sanitizeArgs(rawArgs) {
   const BANISHED_CHARS = [";", "&", "|", "[", "]", "{", "}", "(", ")", ".."];
   let cleanArgs = [];
