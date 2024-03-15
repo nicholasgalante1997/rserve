@@ -6,15 +6,16 @@ import child_process from "child_process";
 import { program } from "commander";
 import path from "path";
 
-import Logger from "./logger.mjs";
+import { ExecutableBuilder, HostConfig, Logger } from "./models/index.mjs";
+import { sanitizeArgs, setupLogger } from './utils/index.mjs';
 
-const PREDICTABLE_PATH_TO_RS_EXECUTABLE = "node_modules/rserve2/crates/rserve/target/release/rserve";
-const BANISHED_CHARS = [";", "&", "|", "[", "]", "{", "}", "(", ")", ".."];
+const PREDICTABLE_PATH_TO_RS_EXECUTABLE = "node_modules/rsrv/crates/rsrv";
+const DEFAULT_PORT = 8080;
 
 program
-  .name("rserve")
+  .name("rsrv")
   .description("A simple, fast command line file server, implemented in rust.")
-  .version("0.0.1");
+  .version("1.1.0");
 
 program.argument(
   "<directories...>",
@@ -24,29 +25,35 @@ program.argument(
 program.option(
   "-p, --port <number>",
   "Specify a custom port to bind the server instance to. Default is 8080",
-  8080
+  DEFAULT_PORT
 );
+
 program.option(
   "--cors <string>",
   "Enable CORS, sets `Access-Control-Allow-Origin` to `*`, or a provided pattern",
   false
 );
+
+program.option(
+  "--cache-control <number>",
+  "Set a custom cache control header time. Default is 3 days.",
+  259200
+);
+
 program.option("--fallback", "Rewrite all not-found requests to `index.html`", false);
+
 program.option(
   "--log-level <string>",
   "Can be used to control output of server logs. Levels are: Info, Warn, Error, Fatal, Silent. Default is: Info",
   "Info"
 );
+
 program.option("--no-compression", "Do not compress outgoing files", false);
+
 program.option(
   "--no-port-switching",
   "Do not open a port other than the one specified when it's taken",
   true
-);
-program.option(
-  "--platform <string>",
-  "Which rust binary executable to use based on which platform your code is running on. Default is x86_64-unknown-linux-gnu",
-  "x86_64-unknown-linux-gnu"
 );
 
 program.parse();
@@ -54,39 +61,72 @@ program.parse();
 const programOptions = program.opts();
 const programArguments = program.args;
 
-const logLevel = programOptions.logLevel;
+const logger = setupLogger(programOptions.logLevel);
+const executable = getExecutable(programArguments, programOptions);
+const hostConfig = new HostConfig();
 
-const stdout = new Logger({ level: logLevel.toLowerCase() });
+run(executable);
 
-const pathToExecutable = path.resolve(process.cwd(), PREDICTABLE_PATH_TO_RS_EXECUTABLE);
+/**
+ *
+ * @param {Array<string>} commandLineArguments
+ * @param {Object} options
+ * @returns {string}
+ */
+function getExecutable(commandLineArguments, options = { port: DEFAULT_PORT }) {
+  if (commandLineArguments.length === 0) {
+    logger.error("Missing arguments array.");
+    process.exit(2);
+  }
 
-let formattedExecutableCommand = `${pathToExecutable}`;
-formattedExecutableCommand += ' ';
+  const pathToRsrvExecutable = path.resolve(process.cwd(), PREDICTABLE_PATH_TO_RS_EXECUTABLE);
+  const sanitizedArgs = sanitizeArgs(commandLineArguments);
+  const executableBuilder = new ExecutableBuilder();
 
-for (let directoryArg of programArguments) {
-	for (const banishedChar of BANISHED_CHARS) {
-		directoryArg = directoryArg.replace(banishedChar, "");
-	};
-	formattedExecutableCommand += `--dir=${directoryArg} `;
+  executableBuilder.setDirectories(sanitizedArgs);
+  executableBuilder.setPath(pathToRsrvExecutable);
+  executableBuilder.setPort(options.port);
+  executableBuilder.setLogLevel(options.logLevel);
+
+  if (options.cors) {
+    executableBuilder.setCors(options.cors);
+  }
+
+  if (options.noCompression) {
+    executableBuilder.setNoCompression(options.noCompression);
+  }
+
+  if (options.noPortSwitching) {
+    executableBuilder.setNoPortSwitching(options.noPortSwitching);
+  }
+
+  if (options.fallback) {
+    executableBuilder.setFallback(options.fallback);
+  }
+
+  return executableBuilder.build().format();
 }
 
-formattedExecutableCommand += ` --port=${programOptions.port}`;
+/**
+ *
+ * @param {string} executable
+ * @returns {void}
+ */
+function run(executable) {
+  const child_fork = child_process.exec(executable, (e, stdout, stderr) => {
+    if (e) {
+      logger.error(e);
+    }
 
-stdout.info({ programOptions, programArguments, formattedExecutableCommand });
+    logger.info(stdout);
+    logger.error(stderr);
+  });
 
-const child_fork = child_process.exec(formattedExecutableCommand, (e, stdo, stde) => {
-	if (e) {
-		stdout.error(e);
-	}
+  child_fork.stdout.on("data", (data) => {
+    process.stdout.write(data);
+  });
 
-	stdout.info(stdo);
-	stdout.error(stde);
-});
-
-child_fork.stdout.on('data', (data) => {
-	process.stdout.write(data);
-})
-
-child_fork.stderr.on('data', (data) => {
-	process.stderr.write(data);
-})
+  child_fork.stderr.on("data", (data) => {
+    process.stderr.write(data);
+  });
+}

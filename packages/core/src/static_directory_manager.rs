@@ -1,5 +1,38 @@
+use crate::filelike::FileLike;
 use crate::logger::Logger;
-use std::fs;
+use core::fmt::{Debug, Display};
+use std::error::Error;
+use std::fmt::write;
+
+pub struct UnknownFileError {
+    path: String,
+}
+
+impl Debug for UnknownFileError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write(
+            f,
+            format_args!(
+                "RSRV::UnknownFileError - Unable to read file @ path: {}",
+                self.path
+            ),
+        )
+    }
+}
+
+impl Display for UnknownFileError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write(
+            f,
+            format_args!(
+                "RSRV::UnknownFileError - Unable to read file @ path: {}",
+                self.path
+            ),
+        )
+    }
+}
+
+impl Error for UnknownFileError {}
 
 #[derive(Debug, Clone)]
 pub struct StaticDirectoryManager {
@@ -20,29 +53,32 @@ impl StaticDirectoryManager {
 }
 
 impl StaticDirectoryManager {
-    pub fn get_file(&self, absolute_path: &str) -> Result<String, ()> {
+    pub fn get_file(&self, absolute_path: &str) -> Result<FileLike, Box<dyn Error>> {
         if self.has(absolute_path) {
-            if let Ok(file_contents) = fs::read_to_string(&absolute_path) {
-                Ok(file_contents)
-            } else {
-                Err(())
-            }
+            FileLike::get_filelike(absolute_path)
         } else {
-            Err(())
+            Err(Box::new(UnknownFileError {
+                path: String::from(absolute_path),
+            }))
         }
     }
 }
 
 impl StaticDirectoryManager {
-    pub fn search_for_file_path_in_approved_directories(&self, path: &str) -> Result<String, ()> {
+    pub fn search_for_file_path_in_approved_directories(&self, path: &str) -> Result<FileLike, ()> {
         let directories_as_strings = self.directories.clone();
         for mut directory_string in directories_as_strings {
             directory_string.push_str(path);
-            Logger::info(&format!("Requested Path: {}", &directory_string));
             let file_op_result = self.get_file(&directory_string);
-            if let Ok(file) = file_op_result {
-                Logger::info(&format!("Found path! File exists @ {}", &directory_string));
-                return Ok(file);
+            match file_op_result {
+                Ok(file) => {
+                    Logger::info(&format!("Requested File: {}", &directory_string));
+                    return Ok(file);
+                }
+                Err(e) => {
+                    Logger::warn(&format!("File Not Found: {}", &directory_string));
+                    Logger::error(e.to_string().as_str());
+                }
             }
         }
 

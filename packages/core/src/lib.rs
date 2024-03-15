@@ -1,73 +1,102 @@
-use std::{
-    sync::{mpsc, Arc, Mutex},
-    thread,
-};
+pub mod arguments;
+pub mod cache;
+pub mod connection;
+pub mod default_file;
+pub mod directory;
+pub mod filelike;
+pub mod gzip;
+pub mod headers;
+pub mod hostname;
+pub mod logger;
+pub mod port;
+pub mod request;
+pub mod response;
+pub mod static_directory_manager;
 
-pub struct ThreadPool {
-    workers: Vec<Worker>,
-    sender: mpsc::Sender<Job>,
-}
+use std::{env, error::Error, net::TcpListener, process};
 
-type Job = Box<dyn FnOnce() + Send + 'static>;
+use arguments::Arguments;
+use connection::ConnectionHandler;
+use default_file::DefaultFile;
+use directory::Directory;
+use logger::Logger;
+use static_directory_manager::StaticDirectoryManager;
 
-impl ThreadPool {
-    /// Create a new ThreadPool.
-    ///
-    /// The size is the number of threads in the pool.
-    ///
-    /// # Panics
-    ///
-    /// The `new` function will panic if the size is zero.
-    pub fn new(size: usize) -> ThreadPool {
-        assert!(size > 0);
+const VERSION: &str = "1.1.0";
 
-        let (sender, receiver) = mpsc::channel();
+pub fn run() {
+    echo_rsrv_process_started();
 
-        let receiver = Arc::new(Mutex::new(receiver));
-
-        let mut workers = Vec::with_capacity(size);
-
-        for i in 0..size {
-            workers.push(Worker::new(i, Arc::clone(&receiver)));
-        }
-
-        ThreadPool { workers, sender }
+    if !ensure_directories_exist() {
+        Logger::error("Supplied a static directory that was not found. Exiting process.");
+        process::exit(1);
     }
 
-    pub fn execute<F>(&self, f: F)
-    where
-        F: FnOnce() + Send + 'static,
-    {
-        let job = Box::new(f);
+    let server = get_server().unwrap_or_else(|e| {
+        Logger::error(&format!(
+            "ExceptionThrown while setting up server.\n{:#?}",
+            e
+        ));
+        process::exit(1);
+    });
 
-        self.sender.send(job).unwrap();
-    }
+    listen(server);
 }
 
-struct Worker {
-    id: usize,
-    thread: thread::JoinHandle<()>,
+pub fn echo_rsrv_process_started() {
+    let static_server_started_log = format!("Starting rsrv, version {:?}", VERSION);
+    Logger::info(&static_server_started_log);
 }
 
-impl Worker {
-    fn new(id: usize, receiver: Arc<Mutex<mpsc::Receiver<Job>>>) -> Worker {
-        let thread = thread::spawn(move || loop {
-            let job = receiver.lock().unwrap().recv().unwrap();
+pub fn ensure_directories_exist() -> bool {
+    let directory_arguments = Arguments::find_directory_arguments();
+    Directory::ensure_directory_integrity(&directory_arguments)
+}
 
-            println!("Worker {id} got a job; executing.");
+pub fn get_directories_as_paths() -> Vec<String> {
+    let directory_arguments = Arguments::find_directory_arguments();
+    let dirs_as_options = Directory::get_absolute_paths_from_dir_args(&directory_arguments);
+    let mut dirs_as_paths: Vec<String> = vec![];
 
-            job();
+    dirs_as_options
+        .into_iter()
+        .for_each(|dir_option| match dir_option {
+            Some(dir) => {
+                dirs_as_paths.push(dir);
+            }
+            None => (),
         });
-        Worker { id, thread }
-    }
+
+    dirs_as_paths
 }
 
-// Note: If the operating system can’t create a thread
-// because there aren’t enough system resources,
-// thread::spawn will panic.
-// That will cause our whole server to panic,
-// even though the creation of some threads might succeed.
-// For simplicity’s sake, this behavior is fine,
-// but in a production thread pool implementation,
-// you’d likely want to use std::thread::Builder
-// and its spawn method that returns Result instead
+pub fn get_server() -> Result<TcpListener, Box<dyn Error>> {
+    let port_argument = Arguments::find_port_argument_or_get_default();
+    let host_argument = Arguments::find_host_argument_or_get_default();
+    let host_and_port_string = format!("{host_argument}:{port_argument}");
+
+    let listener = TcpListener::bind(host_and_port_string)?;
+    Ok(listener)
+}
+
+pub fn listen(server: TcpListener) {
+    for stream in server.incoming() {
+        match stream {
+            Ok(stream) => {
+                let args: Vec<String> = env::args().collect();
+                let dirs_as_paths = get_directories_as_paths();
+
+                ConnectionHandler::handle(
+                    stream,
+                    StaticDirectoryManager {
+                        directories: dirs_as_paths,
+                        backup_file: DefaultFile::get_default_file_or_default(&args),
+                    },
+                );
+            }
+            Err(e) => {
+                Logger::error(&format!("Stream Corrupted: {:#?}", e));
+            }
+        }
+    }
+}

@@ -1,19 +1,33 @@
-use std::io::{Error, Write};
+use std::error::Error;
+use std::io::Write;
 
-use crate::logger::Logger;
+use crate::filelike::FileLike;
 use flate2::write::GzEncoder;
 use flate2::Compression;
 
 pub struct Gzip;
 
 impl Gzip {
-    pub fn compress(file_data: &str) -> Result<Vec<u8>, Error> {
-        let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
-        if let Err(e) = encoder.write_all(file_data.as_bytes()) {
-            Logger::error(&format!("{:#?}", e));
-            return Err(e);
-        };
-        let compressed_data = encoder.finish()?;
-        Ok(compressed_data)
+    pub fn compress(file: &FileLike) -> Result<Vec<u8>, Box<dyn Error>> {
+        match file {
+            FileLike::TextFile(file) => {
+                let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
+                encoder.write_all(file.as_bytes())?;
+                let compressed_data = encoder.finish()?;
+                Ok(compressed_data)
+            }
+            FileLike::ImageFile(image_file) => {
+                let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
+                encoder.write_all(&image_file)?;
+                let gzipped_data = encoder.finish()?;
+                Ok(gzipped_data)
+            }
+            FileLike::ProxyFile(file) => {
+                let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
+                encoder.write_all(&file)?;
+                let gzipped_data = encoder.finish()?;
+                Ok(gzipped_data)
+            }
+        }
     }
 }

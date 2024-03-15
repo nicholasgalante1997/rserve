@@ -1,5 +1,9 @@
 use std::collections::HashMap;
 
+use crate::arguments::Arguments;
+use crate::filelike::FileLike;
+use crate::request::Request;
+
 #[derive(Debug, Clone)]
 pub struct Headers {
     pub map: HashMap<String, String>,
@@ -12,6 +16,18 @@ impl Headers {
             map.insert(key, value);
         }
         Headers { map }
+    }
+    pub fn construct_outgoing_headers(request: Request, file: &FileLike, compressed: bool) -> Self {
+        let mut headers = Self::new(vec![]);
+        Self::add_content_type_outgoing_header(&mut headers, &request);
+        Self::add_cache_control_outgoing_header(&mut headers);
+        if compressed {
+            Self::add_content_encoding_outgoing_header(&mut headers, &request);
+        } else {
+            Self::add_content_length_outgoing_header(&mut headers, file);
+        }
+
+        headers
     }
     pub fn convert_raw_headers(raw_headers: Vec<String>) -> Vec<(String, String)> {
         let mut kv_header_vec: Vec<(String, String)> = Vec::new();
@@ -92,6 +108,56 @@ impl Headers {
             Some(value) => String::from(*value),
             None => String::from("application/octet-stream"),
         }
+    }
+
+    fn add_content_encoding_outgoing_header(headers: &mut Self, request: &Request) {
+        let disabled_compression = match Arguments::find_compression_argument_or_get_default() {
+            Some(_) => true,
+            None => false,
+        };
+
+        let null_accept_encoding_header = String::new();
+        let derefd_accept_encoding_header = request
+            .headers()
+            .get_header_by_key("Accept-Encoding")
+            .unwrap_or_else(|| &null_accept_encoding_header);
+
+        let compressed = derefd_accept_encoding_header.contains("gzip") && !disabled_compression;
+
+        if compressed {
+            let content_encoding_key = String::from("Content-Encoding");
+            let content_encoding_value = String::from("gzip");
+            headers
+                .map
+                .insert(content_encoding_key, content_encoding_value);
+
+            let connection_key = String::from("Connection");
+            let connection_value = String::from("close");
+            headers.map.insert(connection_key, connection_value);
+        };
+    }
+
+    fn add_content_type_outgoing_header(headers: &mut Self, request: &Request) {
+        headers.map.insert(
+            String::from("Content-Type"),
+            String::from(Headers::format_content_type_header_based_on_request_path(
+                &request.path(),
+            )),
+        );
+    }
+
+    fn add_cache_control_outgoing_header(headers: &mut Self) {
+        let cache_control_header_value = Arguments::find_cache_control_argument_or_get_default();
+        let cache_control_header_key = String::from("Cache-Control");
+        headers
+            .map
+            .insert(cache_control_header_key, cache_control_header_value);
+    }
+
+    fn add_content_length_outgoing_header(headers: &mut Self, file: &FileLike) {
+        headers
+            .map
+            .insert(String::from("Content-Length"), file.len().to_string());
     }
 }
 
