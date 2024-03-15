@@ -48,16 +48,6 @@ pub fn echo_rsrv_process_started() {
     Logger::info(&static_server_started_log);
 }
 
-pub fn log_arguments() {
-    let arguments_log = Arguments::get_formatted_args_log_line();
-    Logger::info(&arguments_log);
-}
-
-pub fn log_directory_arguments() {
-    let directory_arguments_log = Arguments::get_formatted_directory_arguments_line();
-    Logger::info(&directory_arguments_log);
-}
-
 pub fn ensure_directories_exist() -> bool {
     let directory_arguments = Arguments::find_directory_arguments();
     Directory::ensure_directory_integrity(&directory_arguments)
@@ -65,7 +55,7 @@ pub fn ensure_directories_exist() -> bool {
 
 pub fn get_directories_as_paths() -> Vec<String> {
     let directory_arguments = Arguments::find_directory_arguments();
-    let dirs_as_options = Directory::get_clean_directory_paths(&directory_arguments);
+    let dirs_as_options = Directory::get_absolute_paths_from_dir_args(&directory_arguments);
     let mut dirs_as_paths: Vec<String> = vec![];
 
     dirs_as_options

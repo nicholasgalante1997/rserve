@@ -31,9 +31,10 @@ impl ConnectionHandler {
                     Ok(file_contents) => file_contents,
                     Err(_) => {
                         let backup_file_result = static_directory_manager_instance
-                            .search_for_file_path_in_approved_directories(
-                                static_directory_manager_instance.backup_file.as_str(),
-                            );
+                            .search_for_file_path_in_approved_directories(&format!(
+                                "/{}",
+                                static_directory_manager_instance.backup_file.as_str()
+                            ));
 
                         match backup_file_result {
                             Ok(file) => file,
@@ -50,44 +51,19 @@ impl ConnectionHandler {
                     }
                 };
 
-                let null_accept_encoding_header = String::new();
-                let derefd_accept_encoding_header = request
-                    .headers()
-                    .get_header_by_key("Accept-Encoding")
-                    .unwrap_or_else(|| &null_accept_encoding_header);
+                let accept_encoding_header =
+                    match request.headers().get_header_by_key("Accept-Encoding") {
+                        Some(header) => header.clone(),
+                        None => String::new(),
+                    };
 
-                let compressed = derefd_accept_encoding_header.contains("gzip");
-                let mut headers = Headers::new(vec![
-                    (
-                        String::from("Content-Type"),
-                        String::from(Headers::format_content_type_header_based_on_request_path(
-                            &path,
-                        )),
-                    ),
-                    (
-                        String::from("Cache-Control"),
-                        String::from("private, max-age=60, must-revalidate"), // Get from command line arg
-                    ),
-                ]);
-
-                if compressed {
-                    headers
-                        .map
-                        .insert(String::from("Content-Encoding"), String::from("gzip"));
-                    headers
-                        .map
-                        .insert(String::from("Connection"), String::from("close"));
-                } else {
-                    headers
-                        .map
-                        .insert(String::from("Content-Length"), file.len().to_string());
-                }
+                let compressed = accept_encoding_header.contains("gzip");
 
                 let response = Response::new(
                     String::from("HTTP/1.1"),
                     200,
                     String::from("OK"),
-                    headers.map,
+                    Headers::construct_outgoing_headers(request, &file, compressed).map,
                     file,
                     compressed,
                 );

@@ -72,10 +72,11 @@ impl StaticDirectoryManager {
             let file_op_result = self.get_file(&directory_string);
             match file_op_result {
                 Ok(file) => {
-                    Logger::info(&format!("Found path! File exists @ {}", &directory_string));
+                    Logger::info(&format!("Requested File: {}", &directory_string));
                     return Ok(file);
                 }
                 Err(e) => {
+                    Logger::warn(&format!("File Not Found: {}", &directory_string));
                     Logger::error(e.to_string().as_str());
                 }
             }

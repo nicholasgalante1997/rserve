@@ -34,6 +34,12 @@ program.option(
   false
 );
 
+program.option(
+  "--cache-control <number>",
+  "Set a custom cache control header time. Default is 3 days.",
+  259200
+);
+
 program.option("--fallback", "Rewrite all not-found requests to `index.html`", false);
 
 program.option(
